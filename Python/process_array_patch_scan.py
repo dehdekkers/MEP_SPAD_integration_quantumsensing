@@ -1,3 +1,4 @@
+# DISCLAIMER: This script was partly generated using the GPT-5 AI model, thorough checks were done by the author before using any AI-generated routines.
 # This script is meant for processing a patched scan dataset
 
 import os

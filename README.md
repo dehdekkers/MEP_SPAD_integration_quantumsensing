@@ -1,2 +1,14 @@
 # MEP_SPAD_integration_quantumsensing
-All the code that was developed during the course of my master thesis with title: Integration and Characterisation of Single Photon Avalanche Diode Chips - Towards an NV-center based quantum biosensor. This research was conducted in collaboration with the TU Delft and NXP
+All the code that was developed during the course of my master thesis with title: Integration and Characterisation of Single Photon Avalanche Diode Chips - Towards an NV center based quantum biosensor. This research was conducted in collaboration with the TU Delft and NXP Semiconductors.
+This repository contains both the Arduino I2C communication code, and the widefield ODMR routines for the PC. All routines are also stored locally on the QIT lab PC. This repository is meant to be viewed after the master thesis of the author has been read, strictly for lab/research group members that want to continue widefield ODMR experiments. 
+
+# General widefield ODMR instructions
+A specific order needs to be followed when using these routines, to ensure optimal results.
+- First, the Arduino must be accessed through the Arduino Labs for Micropython compiler. The array_readout.py script is stored as main.py on the Arduino. Run it on the compiler, and disconnect from the Arduino (it keeps running the readout loop in the background).
+- The PC is now ready to receive the frames of the SPAD array, general readout is done with array_piezo_reader. This should be the first check to see if the frames are correct and the SPAD array is functioning correctly.
+- Once the SPAD array is functioning, an y-scan is necessary to find optimal focus on the sample (after visually aligning the sample with the objective lens). An y-scan can be performed using y_scan_array.py.
+- After the y-scan, you can optionally run onedimensional scans along the x or z axes to map the sample location (XZ_scan_array.py).
+- For widefield imaging, a patched scan can be performed with adjustable size and location, using (array_patch_scan.py/process_array_patch_scan.py).
+- Widefield ODMR routines are performed using array_ODMR.py.
+
+All routines are performed by typing "python3 <routine_name>.py", processing scripts take the data file as an argument after this command ("python3 <process_routine_name>.py "path_to_data"">

@@ -1,3 +1,4 @@
+# DISCLAIMER: This script was partly generated using the GPT-5 AI model, thorough checks were done by the author before using any AI-generated routines.
 # This script executes a scan of the total array counts along either the x or z axis, y is always fixed, along with the other unused coordinate.
 # The purpose of this script is to get an estimate of the diamond location, after finding the optimal focus with y_scan_array
 

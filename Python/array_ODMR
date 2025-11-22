@@ -1,0 +1,156 @@
+#This script performs ODMR for all 64 pixels of the array
+
+from __future__ import print_function
+import numpy as np
+import matplotlib.pyplot as plt
+#import zhinst.utils
+#import Pyro5.api
+from array_reader_piezo import get_frame
+from zhinst.toolkit import Session
+import time
+from datetime import datetime
+import scipy as scipy
+import os
+import sys
+import json
+        
+
+def main() -> int:
+    settings = {
+        "save_folder": "/home/dl-lab-pc3/Documents/Diederik/widefield_measurements/",
+        "x_steps": 8,
+        "y_steps": 8,
+        "min_freq": 2.80e9,
+        "max_freq": 2.94e9,
+        "num_measurements": 200,
+        "num_sweeps": 3,
+        "MW_power": 25,
+        "measurement_type": "ODMR",
+        "x": 2.3,
+        "y": -2.81625,
+        "z": -1  
+    }
+
+    settings_file = None
+
+    if(settings_file != None):
+        #Load settings from specified json file
+        with open(settings_file, 'r') as f:
+            settings = json.load(f)
+
+    save_folder = settings["save_folder"]
+    min_freq = settings["min_freq"]
+    max_freq = settings["max_freq"]
+    num_measurements = settings["num_measurements"]
+    num_sweeps = settings["num_sweeps"]
+    MW_power = settings["MW_power"]
+    x_steps = settings["x_steps"]
+    y_steps = settings["y_steps"]
+    x = settings["x"]
+    y = settings["y"]
+    z = settings["z"]
+	
+
+    # Saving the data:
+    current_time = datetime.now()
+    timestamp_string = str(round(current_time.timestamp()))
+    #Determine preset for file name
+    scan_name = "widefield_ODMR"
+    savePath = save_folder + scan_name + timestamp_string #Without file extension yet
+    settings["savePath"] = savePath
+    settings["Start time"] = str(current_time)
+    settings_file_path = settings["save_folder"] + "widefield_ODMR_settings" + timestamp_string + ".json"
+
+
+
+    #Initialize AWG                                                     
+    # ---- user knobs ----
+    serial = "DEV12120"
+    channel = 1                 # 0-based! channel 1 = second RF output
+    rf_path = True              # True = RF path, False = LF path
+    center_hz = min_freq
+    offset_hz  = 0
+    #range_dbm  = 5              # coarse power (full-scale sine power) MUST BE MULTIPLE OF 5
+    target_dbm = MW_power           # desired CW power at the output connector MUST BE LOWER THAN range_dbm
+    range_dbm = np.ceil(target_dbm / 5) * 5
+    print("range_dbm:", range_dbm)
+
+    # ---- connect ----
+    sess = Session("localhost", 8004)
+    dev = sess.connect_device(serial)
+    ch  = dev.sgchannels[channel]
+
+    # ---- coarse power & LO ----
+    ch.configure_channel(
+        enable=True,
+        output_range=range_dbm,
+        center_frequency=center_hz,
+        rf_path=rf_path
+    )
+
+    # ---- fine power via sine generator gains ----
+    # For a single upper-sideband tone, scale the two non-zero gains equally.
+    a = 10**((target_dbm - range_dbm)/20.0)  # amplitude scale 0..1
+    a = max(0.0, min(1.0, a))                # safety clamp
+    print("Gain:", a)
+
+    ch.configure_sine_generation(
+        enable=True,
+        osc_index=0,
+        osc_frequency=offset_hz,
+        phase=0.0,
+        gains=(0.0, a, a, 0.0)               # (I/sin, I/cos, Q/sin, Q/cos)
+    )
+
+
+
+    freq_arr = np.linspace(min_freq, max_freq, num_measurements)
+    osc_freq = freq_arr - center_hz 
+    PL = np.zeros((8, 8, num_measurements))
+    PL_norm = np.zeros((8, 8, num_measurements))
+    
+    for isw in range(num_sweeps):
+        print("sweep: " + str(isw) + "/" + str(num_sweeps))
+        for im in range(num_measurements):
+            if im == 0:
+                f = get_frame()
+            #Actual measurement
+            ch.configure_sine_generation(
+                enable=True,
+                osc_index=0,
+                osc_frequency=osc_freq[im],  
+                phase=0.0,
+                gains=(0.0, a, a, 0.0)        
+            )        #Get imager image
+            
+            PL[:,:,im] += get_frame() / num_sweeps
+
+            print(f"Frequency: {freq_arr[im]}")
+            
+     #Normalize data       
+    for ix in range(8):
+        for iy in range(8):
+            PL_norm[ix][iy] = PL[ix][iy] / max(PL[ix][iy])
+
+    #Save results
+    settings["End time"] = str(datetime.now())
+
+    #Values for piezo coordinates
+    FOV_side = 37e-3 #Add your FOV here (in mm)
+    settings["x1"] = x
+    settings["x2"] = x + FOV_side
+    settings["y1"] = z 
+    settings["y2"] = Z + FOV_side
+
+    np.save(savePath + ".npy", PL)
+    print("File saved as: ", savePath+".npy")
+    with open(savePath + ".json", 'w') as f: 
+        json.dump(settings, f, indent="")
+    
+    print("Measurement done!")
+
+
+if __name__ == "__main__":
+    exitcode = main()
+    if exitcode != 0:
+        sys.exit(exitcode)

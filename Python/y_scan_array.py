@@ -1,3 +1,7 @@
+# DISCLAIMER: This script was partly generated using the GPT-5 AI model, thorough checks were done by the author before using any AI-generated routines.
+#This script counts the total array counts for a range of points in the y-axis. X and z are kept constant. 
+#The main purpose of this scan is to find the focus point of the widefield setup
+
 from __future__ import print_function
 from IPython.display import display, clear_output
 from scipy.signal import find_peaks
@@ -8,8 +12,7 @@ from laboneq.simple import *
 from laboneq.controller.util import *
 from time import sleep
 import time
-#This script counts the total array counts for a range of points in the y-axis. X and z are kept constant. 
-#The main purpose of this scan is to find the focus point of the widefield setup
+
 
 from datetime import date, datetime
 import scipy as scipy
